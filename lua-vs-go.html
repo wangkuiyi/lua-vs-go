@@ -1,0 +1,462 @@
+<html>
+  <head>
+  </head>
+  <body>
+    <table>
+      <tr>
+	<td colspan=2>
+	  <h1>Lua versus Go</h1>
+
+	  <p>This article compares Lua and Go in respect of basic
+	    syntax, not including concurrent programming paradigm.  It is
+	    based on <a href="http://tylerneylon.com/a/learn-lua/">Learn
+	      Lua in 15 Minutes</a>.  In the following text, the left column
+	    shows Lua code and the right column shows coresponding Go
+	    code.</p>
+
+    	  <p>Variable definitions and <tt>nil</tt> value.
+
+	</td>
+      </tr>
+
+      <tr>
+	<td>
+	  <pre>
+	    num = 42
+	    s = 'walternate'
+	    t = "double-quotes are also fine"
+	    u = [[Long long
+	    lines]]
+	    t = nil
+	  </pre>
+	</td>
+	<td>
+	  <pre>
+	    num := 42
+	    s := "walternate"
+	    t := "single-quotes are not allowed"
+	    u := `Long long
+	    lines`
+	    t := nil
+	  </pre>
+	</td>
+      </tr>
+
+      <tr><td colspan=2>
+	  
+	  <p>In Lua, blocks are denoted with keywords like do/end.  In Go,
+	    they are curly parenthesis.</p>
+      </td></tr>
+      
+      <tr>
+	<td>
+	  <pre>
+	    while num < 50 do
+		num = num + 1
+	    end
+	  </pre>
+	</td>
+	<td>
+	  <pre>
+	    for num < 50 {
+	      num++
+	    }
+	  </pre>
+	</td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>If clauses, I/O, and string concatenation.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    if num > 40 then
+	      print('over 40')
+	    elseif s ~= 'walternate' then
+	      print('not over 40')
+	    else
+	      thisIsGlobal = 5
+	      local line = io.read()
+	      print('Winter is coming, ' .. line)
+	    end
+	</pre></td>
+	<td><pre>
+	    if num > 40 {
+	      print("over 40")
+	    } else if s != "walternate" {
+	      print("not over 40")
+	    } else {
+	      thisIsGlobal = 5
+	      line := bufio.NewReader(os.Stdin).ReadString(`\n`)
+	      print("Winter is coming, " + line)
+	    }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>In Lua, undefined variable has value nil.  In Go,
+	  undefined variable causes compiler error.  In Lua, both
+	  false and nil are falsy; 0 and '' are true.  In Go, only
+	  false is falsy.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    foo = anUnknownVariable -- Now foo is nil.
+
+	    aBoolValue = false
+	    if not aBoolValue then print('twas false') end
+	</pre></td>
+	<td><pre>
+	    foo = anUnknownVariable // compiler error here.
+
+	    aBoolValue := false
+	    if !aBoolValue { print("twas false") }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	<p>In both Lua and Go, 'or' and 'and' are short-cuircuited.
+	In Lua, because only nil and false are falsy, all other values
+	are true, so we can use 'and' and 'or' to do the a?b:c
+	  operation in C/Js.  But in Go, there is nothing like a?b:c.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    ans = aBoolValue and 'yes' or 'no'
+	</pre></td>
+	<td><pre>
+	    if aBoolValue {
+	      ans = "yes"
+	    } else {
+	      ans = "no"
+	    }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Or, for Go, we can define a selection function.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	       
+	</pre></td>
+	<td><pre>
+	    func sel(cond bool, x, y interface{}) interface{} {
+              if cond { return x }
+	      return y
+	    }
+
+	    ans := sel(true, "yes", "no").(string)
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Lua provides a concise for loop syntax than Go.  But
+	  really no much difference at use.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    karlSum = 0
+	    for i = 1, 100 do
+	      karlSum = karlSum + i
+	    end
+
+	    fredSum = 0
+	    for j = 100, 1, -1 do fredSum = fredSum + j end
+	</pre></td>
+	<td><pre>
+	    karlSum := 0
+	    for i := 1; i <= 100; i++ {
+              karlSum++
+            }
+
+	    fredSum := 0
+	    for j := 100; j <= 1; j-- { fredSum += j }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Both Lua and Go support first-class functions.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    function fib(n)
+	      if n < 2 then return 1 end
+	      return fib(n - 2) + fib(n - 1)
+	    end
+	</pre></td>
+	<td><pre>
+	    func fib(n int) int {
+	      if n < 2 { return 1 }
+	      return fib(n - 2) + fib(n - 1)
+            }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>A notable pitfall of Lua here is that, if we forget the
+	  second return statement, Lua interpreter wouldn't give any
+	  warning, and the call to <tt>fib(2)</tt> would simply
+	  return <tt>nil</tt>!</p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+	    function fib(n)
+	      if n < 2 then return 1 end
+            end
+            print(fib(2)) 
+	</pre></td>
+	<td><pre>
+	    func fib(n int) int {
+	      if n < 2 { return 1 }
+	      // Go compiler will complain for missing return here.
+            }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Closures and anonymous functions are ok.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    function adder(x)
+              return function (y) return x + y end
+            end
+            a1 = adder(9)
+            a2 = adder(36)
+            print(a1(16))  -- 25
+            print(a2(64))  -- 100
+	</pre></td>
+        <td><pre>
+	    func adder(x int) func(int) int {
+	      return func(y int) { return x + y }
+	    }
+	    a1 := adder(9)
+	    a2 := adder(36)
+	    print(a1(16))  // 25
+            print(a2(64))  // 100
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Both Lua and Go support assignment of multiple values.
+	  But Lua wouldn't warn if the number of assignees differs
+	  from the number of operands.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    x, y, z = 1, 2, 3  -- no problem
+	    x, y, z = 1, 2, 3, 4 -- 4 is thrown away		     
+	</pre></td>
+        <td><pre>
+	    x, y, z = 1, 2, 3  // no problem
+	    x, y, z = 1, 2, 3, 4 // compiler complains
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Both Lua and Go functions can return multiple values.
+	  The difference is Go compiler checks strictly the matching
+	  of parameters and arguments, and the matching of assignees
+	  and return values.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    function bar(a, b, c)
+	      return 1, 2, 3, 4, 5
+	    end
+	    x, y = bar('apple') -- a is 'apple', b and c are nil.
+	    -- now x is 1, y is 2, values 3 .. 5 are discarded.
+	</pre></td>
+        <td><pre>
+	    func bar(a, b, c int) (int, int) {
+	      return 1, 2
+	    }
+	    x, y := bar('apple', 'orange', 'banana')
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Both Lua and Go support variadic functions.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    function print (...)
+	      for i,v in ipairs(arg) do
+	        print(i, v)
+	      end
+	    end
+	</pre></td>
+        <td><pre>
+	    func print (arg ...interface{}) {
+	      for i,v := range arg {
+	        print(i, v)
+	      }
+	    }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>In both Lua and Go, functions are first-class.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    function f(x) return x * x end
+	    f = function (x) return x * x end
+	</pre></td>
+        <td><pre>
+	    func f(x float64) float64 { return x * x }
+	    f := func(x float64) float64 { return x * x }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>In both Lua, function calls with only one parameter
+	  doesn't need parenthesis.  This is not true for Go.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    print 'hello'
+	</pre></td>
+        <td><pre>
+	    print("hello")
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Table is Lua's only compound data structure. They are
+	  hash-lookup dicts. In Go, there is type map, which is also a
+	  hash dict.  In Lua, list is table with integer typed (index)
+	  keys.  In Go, lists are saved in arrays or slices, which, as
+	  common types, can be accessed more efficiently.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    t = { key1 = 'value', key2 = false }
+	</pre></td>
+        <td><pre>
+	    t := map[string]interface{} { "key1" : "value", "key2" : false }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Lua is dynamically typed, so a table can have various
+	  typed keys and values.  Go is strongly typed, but by using
+	  the special type <tt>interface{}</tt>, it supports
+	  multiple-typed maps.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    u = {['@!#'] = 'qbert', [{}] = 1729, [6.28] = 'tau'}
+	    print(u[6.28])  -- prints "tau"
+	</pre></td>
+        <td><pre>
+	    u := map[interface{}]interface{}{
+		"@!#":          "qbert",
+		&map[int]int{}: 1729,
+		6.28:           "tau",
+	    }
+	    print(u[6.28].(string))
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Please be aware of using an empty table/map as the key.
+	  In Go, we cannot use <tt>map[int]int{}</tt> as the key --
+	  the Go runtime will complain that a map is not hashable.
+	  Instead, we need to use a pointer to the map as the key.
+	  This might make you feel that Go is less convenient as Lua,
+	  but the truth is not.  The truth is that above Lua code
+	  implicitly used pointer to table, instead of the table
+	  itself, as the key -- exactly the same way as the Go
+	  version.  And the following Lua code returns <tt>nil</tt>,
+	  instead of 1729 as you might expect.  Because the key used
+	  for indexing is not the same table object used to construct
+	  table <tt>u</tt>.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    print(u[{}])
+	    -- prints nil, but not 1729.
+	</pre></td>
+        <td><pre>
+	    print(u[&map[int]int{}].(float64))
+	    // runtime complains that interface is nil, not float64
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>A commonly used programming pattern is Lua is calling
+	  functions with only one parameter doesn't need parenthesis.
+	  When this only parameter is a table, it looks like the
+	  following.  This pattern is used in Torch.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    function h(x) print(x.key1) end
+	    h{key1 = 'Sonmi'}
+
+	    torch.Tensor{1,2,3}
+	</pre></td>
+        <td><pre>
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Lua and Go uses similar syntax for enumerating key value
+	  pairs in a table/map.</p>
+      </td></tr>
+
+      <tr>
+	<td><pre>
+	    for key, val in pairs(u) do  -- Table iteration.
+	      print(key, val)
+	    end
+	</pre></td>
+        <td><pre>
+	    for key, val := range u {
+	      print(key, val)
+	    }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Also, similar syntax for enumerating lists/slices.</p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+	    v = {'value1', 'value2', 1.21, 'gigawatts'}
+	    for i = 1, #v do  -- #v is the size of v for lists.
+	      print(v[i])  -- Indices start at 1 !! SO CRAZY!
+	    end
+	</pre></td>
+        <td><pre>
+	    v := []interface{}{"value1", "value2", 1.21, "gigawatts"}
+	    for i := range v {
+	      fmt.Println(reflect.ValueOf(v[i]))
+	    }
+	</pre></td>
+      </tr>
+
+      
+    </table>
+  </body>
+</html>
