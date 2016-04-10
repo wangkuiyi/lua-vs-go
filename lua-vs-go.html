@@ -14,6 +14,8 @@
 	    shows Lua code and the right column shows coresponding Go
 	    code.</p>
 
+	  <h2>Variables and Flow Control</h2>
+	  
     	  <p>Variable definitions and <tt>nil</tt> value.
 
 	</td>
@@ -181,7 +183,7 @@
       </tr>
 
       <tr><td colspan=2>
-	  <p>Both Lua and Go support first-class functions.</p>
+	  <h2>Functions</h2>
       </td></tr>
 
       <tr>
@@ -337,6 +339,8 @@
       </tr>
 
       <tr><td colspan=2>
+	  <h2>Tables and Maps</h2>
+	  
 	  <p>Table is Lua's only compound data structure. They are
 	  hash-lookup dicts. In Go, there is type map, which is also a
 	  hash dict.  In Lua, list is table with integer typed (index)
@@ -456,7 +460,259 @@
 	</pre></td>
       </tr>
 
+      <tr><td colspan=2>
+	  <h3>Metatables and Metamethods</h3>
+	  
+	  <p>Lua table is often used as *namespace*, as we use method
+	  name (string typed) as the key, and the first-class method
+	  as the value.  Such kind of namespaces, when assigned to a
+	  table variable using <tt>setmetatable</tt>, is called
+	  *metatable*.  In Go, we don't attach methods to a variable;
+	  instead, we attach methods to types.  Another notable
+	  difference here is that in Lua there are some pre-defined
+	  methods that correspond to operators.  For example, if we
+	  overload <tt>__add</tt> in a metatable, we actually defines
+	  the action of operator <tt>+</tt> on the variable attached
+	  with the metatable.</p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+	    f1 = { a = 1, b = 2 } -- represents the fraction a/b.
+	    f2 = { a = 2, b = 3 }
+
+	    metafraction = {}
+	    function metafraction.__add(f1, f2)
+	      sum = {}
+	      sum.b = f1.b * f2.b
+	      sum.a = f1.a * f2.b + f2.a * f1.b
+	      return sum
+	    end
+
+	    setmetatable(f1, metafraction)
+	    setmetatable(f2, metafraction)
+
+	    s = f1 + f2  -- call __add(f1, f2) on f1's metatable
+	</pre></td>
+        <td><pre>
+	    type frac struct{ a, b int }
+
+	    func (f1 frac) add(f2 frac) frac { 
+	      return frac{f1.a*f2.b + f1.b*f2.a, f1.b * f2.b}
+	    }
+
+	    f1 := frac{1, 2}
+	    f2 := frac{2, 3}
+	    s := f1.add(f2)
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>It is really not a good idea to attach methods to
+	  variables directly.  The following line would fail, because
+	  s has no metatable.</p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+	    t = s + s -- would fail
+	</pre></td>
+        <td><pre>
+	    
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <h3> Class-like Tables and Inheritance</h3>
+	  
+	  <p>A more reasonable way to use metatable is
+	  with <i>class-like tables</i>.  However, class-like tables
+	  really cost more lines of code than Go's class-like
+	  mechanism.  It is also much less readable.</p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+	    Dog = {} -- define a "class"
+
+	    function Dog:new()  -- 'a:b' is the same as 'a.b(self,'
+	      newObj = {sound = 'woof'}
+	      self.__index = self
+	      return setmetatable(newObj, self) -- setmetatable returns its first arg.
+	    end
+	    
+	    function Dog:makeSound()
+	      print('I say ' .. self.sound)
+	    end
+	    
+	    mrDog = Dog:new()       
+	    mrDog:makeSound()
+	</pre></td>
+        <td><pre>
+	    type Dog struct {
+	      sound string
+	    }
+	    
+	    func NewDog() *Dog {
+	      return &Dog{"woof"}
+	    }
+	    
+	    func (d *Dog) makeSound() {
+	      fmt.Println("I say " + d.sound)
+	    }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>The Lua way of inheritance is also variables-based, and
+	  differs from Go's typed-based inheritance.</p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+	    LoudDog = Dog:new()                           
+	    
+	    function LoudDog:new()
+	      newObj = {}
+	      self.__index = self
+	      return setmetatable(newObj, self)
+	    end
+	    
+	    function LoudDog:makeSound()
+	      print(self.sound .. self.sound .. self.sound)
+	    end
+	    
+	    seymour = LoudDog:new()                       
+	    seymour:makeSound()  
+	</pre></td>
+        <td><pre>
+	    type LoudDog struct {
+	      *Dog
+	    }
+	    
+	    func NewLoudDog() *LoudDog {
+	      return &LoudDog{NewDog()}
+	    }
+	    
+	    func (l *LoudDog) makeSound() {
+	      fmt.Println(l.sound, l.sound, l.sound)
+	    }
+
+	    seymour = NewLoudDog()                       
+	    seymour.makeSound()  
+	</pre></td>
+      </tr>
+      
+      <tr><td colspan=2>
+	  <h2>Modules and Packages</h2>
+	  
+	  <p>Lua's module definition and loading mechanism is similar
+	  to Javascript.  It is an easy-to-implement design for
+	  interpreted languages -- the standard `require` function
+	  inserts the content of a moudule file, which is simply a Lua
+	  source file, into an anonymous function definition, and run
+	  that function.  So the last statement of a Lua module source
+	  file is often a <tt>return</tt> statement.  To install and
+	  maintain Lua modules, we need 3rd party tools
+	  like <tt>luarocks</tt>.  However, Go provides a well
+	  designed packaging mechanism, which doesn't need a
+	  module/package management system like <tt>luarocks</tt> for
+	  Lua, <tt>npm</tt> for Javascript, or <tt>Maven</tt> for
+	  Java. </p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+	    -- Suppose the file mod.lua looks like this:
+	    local M = {}
+	    
+	    local function sayMyName()
+	      print('Hrunkner')
+	    end
+	    
+	    function M.sayHello()
+	      print('Why hello there')
+	      sayMyName()
+	    end
+	    
+	    return M
+	</pre></td>
+        <td><pre>
+	    package mod
+
+	    // Only functions with capitalized names are exported.
+	    func sayMyName() { 
+	      print("Hrunkner")
+	    }
+
+	    func SayHello() { // exported.
+	      print("Why hello there")
+	      sayMyName()
+	    }
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>Lua's <tt>requires</tt> versus Go's <tt>import</tt>.
+	  Note that <tt>require</tt>'s return values are cached so a
+	  file is run at most once, even when require'd many
+	  times.</p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+	    local mod = require('mod')  -- Run the file mod.lua.
+	    
+	    mod.sayHello()  -- Says hello to Hrunkner.
+	    mod.sayMyName()  -- error: sayMyName only exists in mod.lua:
+	</pre></td>
+        <td><pre>
+	    import "github.com/wangkuiyi/example/mod"
+
+	    mod.SayHello()  // Good.
+	    mod.sayMyName()  // Error: sayMyName is not exported.
+	</pre></td>
+      </tr>
+
+      <tr><td colspan=2>
+	  <p>In addition to <tt>require</tt>, Lua
+	  has <tt>dofile</tt>, <tt>loadfile</tt>, <tt>loadstring</tt>
+	  for dynamically loading.  For compiled languages, dynamic
+	  loading is hard to implement.</p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+	    -- dofile is like require without caching:
+	    dofile('mod2.lua')  -- Hi!
+	    dofile('mod2.lua')  -- Hi! (runs it again)
+	    
+	    -- loadfile loads a lua file but doesn't run it yet.
+	    f = loadfile('mod2.lua')  -- Call f() to run it.
+	    
+	    -- loadstring is loadfile for strings.
+	    g = loadstring('print(343)')  -- Returns a function.
+	    g()  -- Prints out 343; nothing printed before now.
+	</pre></td>
+        <td><pre>
+	    
+	</pre></td>
+      </tr>
       
     </table>
   </body>
 </html>
+<!--
+      <tr><td colspan=2>
+	  <p></p>
+      </td></tr>
+      
+      <tr>
+	<td><pre>
+
+	</pre></td>
+        <td><pre>
+	    
+	</pre></td>
+      </tr>
+ -->
